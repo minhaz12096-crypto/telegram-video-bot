@@ -2,13 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StreamX Pro</title>
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://sad.adsgram.ai/js/adsgram-adbox.js"></script>
+    
+    <title>StreamX Pro Admin</title>
+
+    <style>
+      /* বট লোড হওয়ার সময় কালো ব্যাকগ্রাউন্ড রাখতে */
+      body {
+        margin: 0;
+        background-color: #050505;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      // টেলিগ্রাম মিনি অ্যাপকে ফুল স্ক্রিন বা এক্সপ্যান্ড করার জন্য
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    </script>
   </body>
 </html>
