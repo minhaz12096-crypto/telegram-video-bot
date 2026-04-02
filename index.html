@@ -2,29 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
+    <title>StreamX Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <title>StreamX Pro Admin</title>
-
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      /* বট লোড হওয়ার সময় কালো ব্যাকগ্রাউন্ড রাখতে */
-      body {
-        margin: 0;
-        background-color: #050505;
-      }
+      body { background-color: #000; color: white; margin: 0; padding: 0; overflow-x: hidden; }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-
     <script>
-      // টেলিগ্রাম মিনি অ্যাপকে ফুল স্ক্রিন বা এক্সপ্যান্ড করার জন্য
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
+        // টেলিগ্রামকে সিগন্যাল দেওয়া যে অ্যাপ রেডি
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand(); // অ্যাপটি বড় করে ওপেন হবে
+        }
     </script>
   </body>
 </html>
