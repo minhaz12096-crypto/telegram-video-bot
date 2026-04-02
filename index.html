@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Community - Profile & Stats</title>
+    <title>StreamX - Community</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -13,7 +13,7 @@
         .nav-item { color: #aaaaaa; font-size: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .nav-item.active { color: #24A1DE; }
         input { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; outline: none; }
-        .stats-card { background: linear-gradient(145deg, #1a1a1a, #111); border: 1px solid #222; }
+        .stats-card { background: #181818; border: 1px solid #222; border-radius: 12px; padding: 12px; }
         .video-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
     </style>
 </head>
@@ -38,116 +38,130 @@
         const db = getDatabase(app);
         
         const tg = window.Telegram.WebApp;
-        const user = tg.initDataUnsafe?.user || { id: "Guest", first_name: "User" };
+        const user = tg.initDataUnsafe?.user || { id: "8382029741", first_name: "Guest" };
         const userTgId = user.id.toString();
-        const MY_ADMIN_ID = "8382029741"; 
+        const BOT_USERNAME = "Filetourllink1bot"; // আপনার বটের ইউজারনেম এখানে দিন
 
         let currentTab = 'home';
         let videos = [];
-        let isRegistered = false;
+        let users = {};
+        let isVerified = false;
 
-        onValue(ref(db, `users/${userTgId}`), (s) => { isRegistered = !!s.val(); render(); });
+        // ডেটা লোড করা
+        onValue(ref(db, 'videos'), (s) => {
+            const d = s.val();
+            videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
+            render();
+        });
+
+        onValue(ref(db, 'users'), (s) => {
+            users = s.val() || {};
+            if(users[userTgId]?.verified) isVerified = true;
+            render();
+        });
 
         function render() {
             const root = document.getElementById('app');
             let content = '';
 
-            // --- Header ---
             const header = `
                 <header class="p-3 px-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f] z-50 border-b border-zinc-900">
                     <div class="flex items-center gap-2">
                         <i class="fa-brands fa-telegram text-[#24A1DE] text-3xl"></i>
-                        <span class="text-white font-bold text-lg uppercase italic">Telegram</span>
+                        <span class="text-white font-bold text-lg italic">TELEGRAM</span>
                     </div>
                     <i class="fa-solid fa-magnifying-glass text-zinc-400"></i>
                 </header>
             `;
 
-            // --- Home Tab ---
+            // --- Tab: Home ---
             if (currentTab === 'home') {
                 content = videos.map(v => `
-                    <div class="mb-2 border-b border-zinc-900">
-                        <div class="relative">
-                            <img src="${v.thumb}" class="w-full aspect-video object-cover">
-                            <span class="video-duration">${v.duration || '00:00'}</span>
-                        </div>
+                    <div class="mb-4">
+                        <img src="${v.thumb}" class="w-full aspect-video object-cover">
                         <div class="p-3 flex gap-3">
-                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-xs">${v.uploaderName[0]}</div>
-                            <div class="flex-1">
-                                <h3 class="text-sm font-medium line-clamp-2">${v.title}</h3>
-                                <p class="text-[10px] text-zinc-500">${v.views || 0} views • ${v.uploaderName}</p>
+                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">${v.uploaderName[0]}</div>
+                            <div>
+                                <h3 class="text-sm font-medium line-clamp-1">${v.title}</h3>
+                                <p class="text-[10px] text-zinc-500">${v.views} views • ${v.uploaderName}</p>
                             </div>
                         </div>
                     </div>
                 `).join('');
             } 
 
-            // --- Post/Upload Tab (+) ---
+            // --- Tab: Shorts (Photos only) ---
+            else if (currentTab === 'shorts') {
+                content = `<div class="grid grid-cols-3 gap-1 p-1">
+                    ${videos.map(v => `<img src="${v.thumb}" class="aspect-[9/16] object-cover">`).join('')}
+                </div>`;
+            }
+
+            // --- Tab: Plus (+) ---
             else if (currentTab === 'upload') {
-                if(!isRegistered) {
-                    content = `<div class="p-10 text-center"><button onclick="window.instantRegister()" class="bg-[#24A1DE] px-8 py-3 rounded-full font-bold">Registration Now</button></div>`;
+                if(!isVerified) {
+                    content = `
+                        <div class="p-10 text-center">
+                            <i class="fa-solid fa-robot text-6xl text-[#24A1DE] mb-4"></i>
+                            <h2 class="text-xl font-bold mb-2">Bot Confirmation</h2>
+                            <p class="text-xs text-zinc-500 mb-6">আপনাকে আমাদের টেলিগ্রাম বটের মাধ্যমে ভেরিফাই করতে হবে।</p>
+                            <button onclick="window.openBot()" class="bg-[#24A1DE] w-full py-4 rounded-xl font-bold uppercase">Confirm via Bot</button>
+                        </div>
+                    `;
                 } else {
                     content = `
                         <div class="p-5 space-y-4">
                             <h2 class="text-[#24A1DE] font-bold italic"><i class="fa-solid fa-plus"></i> NEW UPLOAD</h2>
-                            <input id="t" class="w-full p-4 rounded-xl text-sm" placeholder="Post/Video Title">
-                            <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Thumbnail/Image URL">
-                            <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Direct Video Link (MP4)">
-                            <div class="flex gap-2">
-                                <input id="dur" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Duration (05:00)">
-                                <input id="unl" type="number" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Ads Count">
-                            </div>
-                            <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-bold uppercase">Publish Post</button>
+                            <input id="t" class="w-full p-4 rounded-xl text-sm" placeholder="Post Title">
+                            <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Photo/Thumbnail URL">
+                            <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Video Link (Optional)">
+                            <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-bold">PUBLISH POST</button>
                         </div>
                     `;
                 }
             }
 
-            // --- Account/Profile Tab ---
-            else if (currentTab === 'account') {
-                const myVideos = videos.filter(v => v.uploaderId === userTgId);
-                const totalViews = myVideos.reduce((sum, v) => sum + (v.views || 0), 0);
-                const totalLikes = myVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
+            // --- Tab: Library (Stats) ---
+            else if (currentTab === 'library') {
+                const totalUsers = Object.keys(users).length;
+                const totalPosts = videos.length;
+                // ডেমো অনলাইন ডাটা (আপনার ডাটাবেস অনুযায়ী ডাইনামিক করা যাবে)
+                const onlineCount = Math.floor(Math.random() * 20) + 5; 
+
+                // Top User বের করা (বেশি ভিডিও যার)
+                let topUser = "N/A";
+                let maxLikes = 0;
+                videos.forEach(v => { if(v.likes > maxLikes) { maxLikes = v.likes; topUser = v.uploaderName; }});
 
                 content = `
-                    <div class="p-5">
-                        <div class="flex items-center gap-4 mb-8">
-                            <div class="w-20 h-20 rounded-full bg-[#24A1DE] flex items-center justify-center text-2xl font-bold border-4 border-zinc-800">
-                                ${user.first_name[0]}
-                            </div>
-                            <div>
-                                <h2 class="text-xl font-bold">${user.first_name}</h2>
-                                <p class="text-xs text-zinc-500">@${user.username || 'user'}</p>
-                            </div>
+                    <div class="p-5 space-y-4">
+                        <h2 class="text-lg font-bold italic">COMMUNITY STATS</h2>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="stats-card"><p class="text-[10px] text-zinc-500">ONLINE</p><p class="text-xl font-bold text-green-500">${onlineCount}</p></div>
+                            <div class="stats-card"><p class="text-[10px] text-zinc-500">TOTAL USERS</p><p class="text-xl font-bold">${totalUsers}</p></div>
+                            <div class="stats-card"><p class="text-[10px] text-zinc-500">TOTAL POSTS</p><p class="text-xl font-bold">${totalPosts}</p></div>
+                            <div class="stats-card"><p class="text-[10px] text-zinc-500">MOST LIKED</p><p class="text-xs font-bold text-[#24A1DE]">${topUser}</p></div>
                         </div>
-
-                        <div class="grid grid-cols-3 gap-3 mb-8">
-                            <div class="stats-card p-3 rounded-2xl text-center">
-                                <div class="text-lg font-bold text-[#24A1DE]">${myVideos.length}</div>
-                                <div class="text-[9px] uppercase text-zinc-500">Posts</div>
-                            </div>
-                            <div class="stats-card p-3 rounded-2xl text-center">
-                                <div class="text-lg font-bold text-green-500">${totalViews}</div>
-                                <div class="text-[9px] uppercase text-zinc-500">Total Views</div>
-                            </div>
-                            <div class="stats-card p-3 rounded-2xl text-center">
-                                <div class="text-lg font-bold text-red-500">${totalLikes}</div>
-                                <div class="text-[9px] uppercase text-zinc-500">Likes</div>
-                            </div>
+                        <div class="mt-8 bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-center">
+                            <i class="fa-solid fa-trophy text-yellow-500 text-3xl mb-2"></i>
+                            <h3 class="font-bold">Trending Content</h3>
+                            <p class="text-[10px] text-zinc-500 mt-1">সবচেয়ে বেশি লাইক এবং ভিউ পাওয়া ভিডিওগুলো এখন লাইব্রেরিতে উন্মুক্ত!</p>
                         </div>
+                    </div>
+                `;
+            }
 
-                        <h3 class="text-sm font-bold mb-4 text-zinc-400">My Uploads</h3>
-                        <div class="space-y-3">
-                            ${myVideos.length > 0 ? myVideos.map(v => `
-                                <div class="flex gap-3 bg-zinc-900/50 p-2 rounded-lg items-center">
-                                    <img src="${v.thumb}" class="w-16 h-10 object-cover rounded">
-                                    <div class="flex-1 min-w-0">
-                                        <p class="text-xs font-medium truncate">${v.title}</p>
-                                        <p class="text-[9px] text-zinc-500">${v.views} views • ${v.likes} likes</p>
-                                    </div>
-                                    <i class="fa-solid fa-trash text-zinc-700 p-2" onclick="window.delVideo('${v.id}')"></i>
-                                </div>
-                            `).join('') : '<p class="text-xs text-zinc-600 text-center py-10">No videos uploaded yet.</p>'}
+            // --- Tab: Account ---
+            else if (currentTab === 'account') {
+                const myPosts = videos.filter(v => v.uploaderId === userTgId);
+                content = `
+                    <div class="p-5 text-center">
+                        <div class="w-20 h-20 bg-zinc-800 rounded-full mx-auto flex items-center justify-center text-3xl font-bold mb-3">${user.first_name[0]}</div>
+                        <h2 class="font-bold">${user.first_name}</h2>
+                        <p class="text-xs text-zinc-500">ID: ${userTgId}</p>
+                        <div class="mt-8 text-left space-y-2">
+                            <p class="text-sm font-bold">My Posts (${myPosts.length})</p>
+                            ${myPosts.map(p => `<div class="bg-zinc-900 p-2 rounded-lg text-xs truncate">${p.title}</div>`).join('')}
                         </div>
                     </div>
                 `;
@@ -156,45 +170,33 @@
             root.innerHTML = header + `<main class="pb-24">${content}</main>` + `
                 <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-800 flex justify-around py-2 z-50">
                     <button onclick="window.go('home')" class="nav-item ${currentTab === 'home'?'active':''}"><i class="fa-solid fa-house text-lg"></i><span>Home</span></button>
-                    <button class="nav-item"><i class="fa-solid fa-bolt text-lg"></i><span>Shorts</span></button>
+                    <button onclick="window.go('shorts')" class="nav-item ${currentTab === 'shorts'?'active':''}"><i class="fa-solid fa-bolt text-lg"></i><span>Shorts</span></button>
                     <button onclick="window.go('upload')" class="nav-item ${currentTab === 'upload'?'active':''}"><i class="fa-solid fa-circle-plus text-3xl"></i></button>
-                    <button class="nav-item"><i class="fa-solid fa-layer-group text-lg"></i><span>Library</span></button>
+                    <button onclick="window.go('library')" class="nav-item ${currentTab === 'library'?'active':''}"><i class="fa-solid fa-layer-group text-lg"></i><span>Library</span></button>
                     <button onclick="window.go('account')" class="nav-item ${currentTab === 'account'?'active':''}"><i class="fa-solid fa-circle-user text-lg"></i><span>Account</span></button>
                 </nav>
             `;
         }
 
-        // --- Functions ---
         window.go = (t) => { currentTab = t; render(); };
-
-        window.instantRegister = () => {
-            set(ref(db, `users/${userTgId}`), { name: user.first_name, regDate: Date.now() });
-        };
-
+        window.openBot = () => { tg.openTelegramLink(`https://t.me/${BOT_USERNAME}`); };
+        
         window.saveVideo = () => {
             const data = {
                 title: document.getElementById('t').value,
                 thumb: document.getElementById('th').value,
                 url: document.getElementById('u').value,
-                duration: document.getElementById('dur').value,
                 uploaderId: userTgId,
                 uploaderName: user.first_name,
                 views: 0, likes: 0, date: Date.now()
             };
-            if(data.title && data.url) {
+            if(data.title && data.thumb) {
                 push(ref(db, 'videos'), data);
                 window.go('home');
             }
         };
 
-        window.delVideo = (id) => { if(confirm("Delete this post?")) remove(ref(db, `videos/${id}`)); };
-
-        onValue(ref(db, 'videos'), (s) => {
-            const d = s.val();
-            videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
-            render();
-        });
-
     </script>
 </body>
-</html>
+    </html>
+    
