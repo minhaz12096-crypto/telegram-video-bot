@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamX YouTube Style</title>
+    <title>StreamX - Pro Video Engine</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <style>
         body { background-color: #0f0f0f; color: white; margin: 0; font-family: 'Roboto', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .yt-card { width: 100%; margin-bottom: 12px; }
         .nav-item { color: #aaaaaa; font-size: 10px; display: flex; flex-direction: column; align-items: center; transition: 0.2s; }
         .nav-item.active { color: white; }
-        .nav-item i { font-size: 20px; margin-bottom: 4px; }
-        .video-thumb { width: 100%; aspect-ratio: 16 / 9; object-cover: cover; border-radius: 0px; }
-        input::placeholder { color: #717171; }
+        .video-thumb { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 0px; }
+        input, select { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; }
     </style>
 </head>
 <body>
@@ -24,6 +23,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyDYaSQbU380U6hcUmBgkDr4WAEmEu45X_U",
             authDomain: "tonnow-pro.firebaseapp.com",
@@ -37,7 +37,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
-        // --- ADMIN ID CONFIGURATION ---
+        // Admin ID
         const MY_ADMIN_ID = "8382029741"; 
 
         const tg = window.Telegram.WebApp;
@@ -47,62 +47,85 @@
         const userTgId = tg.initDataUnsafe?.user?.id?.toString() || "Guest";
         let currentTab = 'home';
         let videos = [];
+        let unlockCounter = {}; // Each video click tracking
 
         function render() {
             const root = document.getElementById('app');
             let content = '';
 
+            // YouTube Style Home Feed
             if (currentTab === 'home') {
                 content = `
                     <div class="flex flex-col">
                         ${videos.map(v => `
-                            <div class="yt-card">
-                                <div class="relative">
-                                    <img src="${v.thumb}" class="video-thumb shadow-lg">
-                                    <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[11px] px-1 rounded font-medium">12:45</span>
+                            <div class="mb-4 bg-[#0f0f0f]">
+                                <div class="relative" onclick="window.handleVideoClick('${v.id}')">
+                                    <img src="${v.thumb}" class="video-thumb shadow-md">
+                                    <span class="absolute bottom-2 right-2 bg-black/80 text-white text-[11px] px-1.5 py-0.5 rounded font-bold">10:00</span>
+                                    <div class="absolute inset-0 flex items-center justify-center">
+                                        <i class="fa-solid fa-play text-white/80 text-5xl opacity-0 hover:opacity-100 transition-opacity"></i>
+                                    </div>
                                 </div>
                                 <div class="flex gap-3 p-3">
-                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-red-600 to-orange-400 flex-shrink-0 flex items-center justify-center font-bold text-sm italic border border-zinc-800">S</div>
+                                    <div class="w-10 h-10 rounded-full bg-red-600 flex-shrink-0 flex items-center justify-center font-bold italic border border-zinc-800">S</div>
                                     <div class="flex flex-col flex-1">
-                                        <h3 class="text-[14px] font-normal leading-tight line-clamp-2">${v.title}</h3>
-                                        <p class="text-[12px] text-zinc-400 mt-1">StreamX Pro • ${Math.floor(Math.random()*100)}K views • 2 hours ago</p>
+                                        <h3 class="text-[14px] font-medium leading-tight line-clamp-2">${v.title}</h3>
+                                        <p class="text-[11px] text-zinc-400 mt-1">StreamX Pro • ${Math.floor(Math.random()*500)}K views • 1 hour ago</p>
                                     </div>
                                     <i class="fa-solid fa-ellipsis-vertical text-zinc-400 text-sm pt-1"></i>
+                                </div>
+                                <div class="px-3 pb-3">
+                                    <button onclick="window.handleVideoClick('${v.id}')" class="w-full bg-[#cc0000] py-2 rounded-full font-bold text-xs uppercase tracking-tighter">▶ Play & Unlock Video</button>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 `;
-            } else if (currentTab === 'admin' && userTgId === MY_ADMIN_ID) {
-                // Shudhu Admin holei ei page load hobe
+            } 
+            // YouTube Style Shorts (Dummy)
+            else if (currentTab === 'shorts') {
+                content = `<div class="h-[80vh] flex items-center justify-center text-zinc-500 italic">YouTube Shorts Style Coming Soon...</div>`;
+            }
+            // Private Admin Panel
+            else if (currentTab === 'admin' && userTgId === MY_ADMIN_ID) {
                 content = `
-                    <div class="p-5 space-y-6 animate-fadeIn">
-                        <div class="bg-zinc-900/50 p-6 rounded-3xl border border-zinc-800 shadow-xl">
-                            <h2 class="text-white font-bold mb-5 flex items-center gap-2 underline decoration-red-600 underline-offset-8">UPLOAD NEW VIDEO</h2>
-                            <div class="space-y-4">
-                                <input id="t" class="w-full bg-zinc-800 border-none p-4 rounded-2xl text-sm focus:ring-2 ring-red-600 outline-none" placeholder="Video Title">
-                                <input id="th" class="w-full bg-zinc-800 border-none p-4 rounded-2xl text-sm focus:ring-2 ring-red-600 outline-none" placeholder="Thumbnail Image URL">
-                                <input id="u" class="w-full bg-zinc-800 border-none p-4 rounded-2xl text-sm focus:ring-2 ring-red-600 outline-none" placeholder="Video File URL (Direct MP4)">
-                                <button onclick="window.saveVideo()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-2xl transition-all active:scale-95 shadow-lg shadow-red-900/20 uppercase tracking-widest">Publish Video</button>
+                    <div class="p-4 space-y-4 animate-fade-in">
+                        <div class="bg-[#1a1a1a] p-5 rounded-2xl border border-zinc-800">
+                            <h2 class="text-red-600 font-black mb-4 uppercase italic flex items-center gap-2"><i class="fa-solid fa-video"></i> Add Video</h2>
+                            <input id="t" class="w-full p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Video Title">
+                            <input id="th" class="w-full p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Thumbnail URL">
+                            <input id="u" class="w-full p-3 rounded-lg mb-4 text-sm outline-none" placeholder="Video Link (Direct MP4)">
+                            
+                            <h2 class="text-green-500 font-black mb-4 uppercase italic flex items-center gap-2 border-t border-zinc-800 pt-4"><i class="fa-solid fa-rectangle-ad"></i> Ad Settings</h2>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 ml-1">Unlock Ads Count</label>
+                                    <input id="unl" type="number" class="w-full p-3 rounded-lg text-sm" placeholder="Ex: 5">
+                                </div>
+                                <div>
+                                    <label class="text-[10px] text-zinc-500 ml-1">Ad Interval (Sec)</label>
+                                    <input id="int" type="number" class="w-full p-3 rounded-lg text-sm" placeholder="Ex: 60">
+                                </div>
                             </div>
+                            <button onclick="window.saveVideo()" class="w-full bg-red-600 py-4 rounded-xl font-black uppercase tracking-widest text-sm active:scale-95 transition-transform shadow-lg shadow-red-900/20">Publish & Save</button>
+                        </div>
+                        <div class="bg-[#1a1a1a] p-5 rounded-2xl border border-zinc-800">
+                            <p class="text-center text-xs text-zinc-500 font-bold uppercase tracking-widest">Total Active Users: 71</p>
                         </div>
                     </div>
                 `;
-            } else {
-                content = `<div class="flex flex-col items-center justify-center h-[70vh] text-zinc-500 font-medium italic">Content Coming Soon...</div>`;
             }
 
             root.innerHTML = `
                 <header class="p-3 px-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f] z-50">
-                    <div class="flex items-center gap-1.5">
-                        <i class="fa-brands fa-youtube text-[#ff0000] text-3xl"></i>
-                        <span class="text-white font-bold text-xl tracking-tighter">YouTube</span>
+                    <div class="flex items-center gap-1">
+                        <i class="fa-brands fa-youtube text-[#ff0000] text-2xl"></i>
+                        <span class="text-white font-bold text-lg tracking-tighter">YouTube</span>
                     </div>
-                    <div class="flex gap-5 text-xl items-center text-zinc-200">
-                        <i class="fa-solid fa-tower-broadcast text-lg"></i>
-                        <i class="fa-regular fa-bell text-lg"></i>
-                        <i class="fa-solid fa-magnifying-glass text-lg"></i>
-                        <div class="w-7 h-7 rounded-full bg-purple-600 text-[10px] flex items-center justify-center font-bold">A</div>
+                    <div class="flex gap-4 text-lg items-center">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <i class="fa-regular fa-bell"></i>
+                        <div class="w-7 h-7 rounded-full bg-blue-600 text-[10px] flex items-center justify-center font-bold">A</div>
                     </div>
                 </header>
 
@@ -110,48 +133,61 @@
 
                 <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-800 flex justify-around items-center py-2 z-50 px-2">
                     <button onclick="window.go('home')" class="nav-item ${currentTab === 'home' ? 'active' : ''}">
-                        <i class="${currentTab === 'home' ? 'fa-solid fa-house' : 'fa-solid fa-house-chimney-window text-zinc-400'}"></i>
-                        <span>Home</span>
+                        <i class="fa-solid fa-house"></i><span>Home</span>
                     </button>
                     <button onclick="window.go('shorts')" class="nav-item ${currentTab === 'shorts' ? 'active' : ''}">
-                        <i class="fa-solid fa-bolt-lightning"></i>
-                        <span>Shorts</span>
+                        <i class="fa-solid fa-bolt"></i><span>Shorts</span>
                     </button>
-                    <button onclick="window.go('subs')" class="nav-item ${currentTab === 'subs' ? 'active' : ''}">
-                        <i class="fa-solid fa-layer-group"></i>
-                        <span>Subscriptions</span>
+                    <button class="nav-item">
+                        <i class="fa-solid fa-circle-plus text-3xl"></i>
                     </button>
-                    
                     ${userTgId === MY_ADMIN_ID ? `
                     <button onclick="window.go('admin')" class="nav-item ${currentTab === 'admin' ? 'active' : ''}">
-                        <i class="fa-solid fa-user-gear"></i>
-                        <span>Admin</span>
+                        <i class="fa-solid fa-screwdriver-wrench text-red-600"></i><span class="text-red-500">Admin</span>
                     </button>` : `
-                    <button onclick="window.go('you')" class="nav-item ${currentTab === 'you' ? 'active' : ''}">
-                        <i class="fa-solid fa-circle-user"></i>
-                        <span>You</span>
+                    <button class="nav-item">
+                        <i class="fa-solid fa-layer-group"></i><span>Library</span>
                     </button>`}
                 </nav>
             `;
         }
 
-        window.go = (t) => { 
-            currentTab = t; 
-            render(); 
-            window.scrollTo(0,0);
-        };
+        // Logic Functions
+        window.go = (t) => { currentTab = t; render(); window.scrollTo(0,0); };
 
         window.saveVideo = () => {
-            const title = document.getElementById('t').value;
-            const thumb = document.getElementById('th').value;
-            const url = document.getElementById('u').value;
-            if(title && url) {
-                push(ref(db, 'videos'), { title, thumb, url, date: Date.now() });
-                alert("পাবলিশ হয়েছে!");
+            const vData = {
+                title: document.getElementById('t').value,
+                thumb: document.getElementById('th').value,
+                url: document.getElementById('u').value,
+                unlockLimit: parseInt(document.getElementById('unl').value) || 5,
+                interval: parseInt(document.getElementById('int').value) || 60,
+                date: Date.now()
+            };
+            if(vData.title && vData.url) {
+                push(ref(db, 'videos'), vData);
+                alert("Success: Video & Ad Config Saved!");
                 window.go('home');
-            } else { alert("Error: Please fill all fields!"); }
+            } else { alert("Error: Input Missing!"); }
         };
 
+        window.handleVideoClick = (id) => {
+            const video = videos.find(v => v.id === id);
+            if(!video) return;
+
+            if(!unlockCounter[id]) unlockCounter[id] = 0;
+
+            if(unlockCounter[id] < video.unlockLimit) {
+                unlockCounter[id]++;
+                alert(`Unlock Video: Please watch ${video.unlockLimit - unlockCounter[id] + 1} more ads to watch this!`);
+                console.log("Triggering Ad for interval: " + video.interval);
+            } else {
+                window.open(video.url, '_blank');
+                unlockCounter[id] = 0; // Reset after watching
+            }
+        };
+
+        // Realtime Data Sync
         onValue(ref(db, 'videos'), (s) => {
             const d = s.val();
             videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
