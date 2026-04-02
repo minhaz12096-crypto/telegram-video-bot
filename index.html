@@ -4,23 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StreamX Pro</title>
-    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-        body { background-color: #000; color: white; margin: 0; font-family: sans-serif; overflow-x: hidden; }
-        .tab-active { color: #dc2626; border-top: 2px solid #dc2626; }
+        body { background-color: #000; color: white; margin: 0; font-family: sans-serif; }
+        .active-tab { color: #ef4444; }
     </style>
 </head>
-<body class="bg-black">
-    <div id="root"></div>
+<body class="bg-black text-white">
+    <div id="app"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // আপনার ফায়ারবেস কনফিগ
         const firebaseConfig = {
             apiKey: "AIzaSyDYaSQbU380U6hcUmBgkDr4WAEmEu45X_U",
             authDomain: "tonnow-pro.firebaseapp.com",
@@ -35,94 +32,103 @@
         const db = getDatabase(app);
         const MY_ADMIN_ID = "8382029741";
 
-        // টেলিগ্রাম ইনিশিয়ালাইজেশন
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
 
         const userTgId = tg.initDataUnsafe?.user?.id?.toString() || "Guest";
+        let currentTab = 'home';
+        let videos = [];
 
-        // রেন্ডারিং লজিক
-        function renderApp(activeTab = 'home', videos = []) {
-            const root = document.getElementById('root');
+        function render() {
+            const root = document.getElementById('app');
             let content = '';
 
-            if (activeTab === 'home') {
+            if (currentTab === 'home') {
                 content = `
-                    <div class="p-4 grid gap-6">
-                        ${videos.length === 0 ? '<p class="text-center text-gray-500 mt-10">ভিডিও লোড হচ্ছে...</p>' : ''}
+                    <div class="p-4 space-y-6">
+                        ${videos.length === 0 ? '<div class="text-center py-20 text-gray-500 italic font-bold tracking-widest">ভিডিও লোড হচ্ছে...</div>' : ''}
                         ${videos.map(v => `
-                            <div class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
-                                <img src="${v.thumb}" class="w-full h-48 object-cover">
-                                <div class="p-4">
-                                    <h3 class="font-bold text-sm mb-3">${v.title}</h3>
-                                    <button class="w-full bg-red-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-900/30">
-                                        ▶ PLAY VIDEO
+                            <div class="bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl">
+                                <div class="relative">
+                                    <img src="${v.thumb}" class="w-full h-52 object-cover">
+                                    <div class="absolute top-3 right-3 bg-red-600 text-[10px] font-black px-2 py-1 rounded shadow-lg uppercase italic">BD Top Viral 🔥</div>
+                                </div>
+                                <div class="p-5">
+                                    <h3 class="font-bold text-sm leading-tight mb-4">${v.title}</h3>
+                                    <button class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl flex items-center justify-center gap-3 transition-all active:scale-95 shadow-lg shadow-red-900/20">
+                                       ▶ PLAY VIDEO
                                     </button>
                                 </div>
                             </div>
                         `).join('')}
                     </div>
                 `;
-            } else if (activeTab === 'admin') {
+            } else if (currentTab === 'admin') {
                 content = `
                     <div class="p-4 space-y-4">
-                        <div class="bg-zinc-900 p-5 rounded-2xl border border-red-900/30">
-                            <h2 class="text-red-600 font-black mb-4 uppercase italic">⚙️ Admin Control</h2>
-                            <input id="title" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Video Title">
-                            <input id="thumb" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Thumbnail URL">
-                            <input id="url" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-4 text-sm outline-none" placeholder="Video MP4 URL">
-                            <button id="publishBtn" class="w-full bg-green-600 py-3 rounded-xl font-bold">পাবলিশ করুন</button>
+                        <div class="bg-zinc-900 p-6 rounded-3xl border border-red-900/50">
+                            <h2 class="text-red-600 font-black mb-6 flex items-center gap-2 uppercase tracking-tighter italic text-center justify-center">⚙️ StreamX Admin Control</h2>
+                            <div class="space-y-3">
+                                <input id="t" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-sm outline-none focus:border-red-600" placeholder="ভিডিও টাইটেল">
+                                <input id="th" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-sm outline-none focus:border-red-600" placeholder="থাম্বনেইল URL">
+                                <input id="u" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-sm outline-none focus:border-red-600" placeholder="ভিডিও MP4 URL">
+                                <input id="a" type="number" class="w-full bg-black border border-zinc-800 p-4 rounded-xl text-sm outline-none focus:border-red-600" placeholder="আনলক অ্যাড সংখ্যা">
+                                <button onclick="window.saveVideo()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black py-4 rounded-xl transition-all shadow-xl shadow-green-900/20">ভিডিও পাবলিশ করুন</button>
+                            </div>
                         </div>
                     </div>
                 `;
             }
 
             root.innerHTML = `
-                <header class="p-4 bg-black/80 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50 flex justify-between items-center">
-                    <h1 class="text-red-600 font-black italic underline text-xl">STREAMX</h1>
-                    <span class="text-[10px] bg-red-600/10 text-red-500 px-3 py-1 rounded-full border border-red-900/50 animate-pulse">● 71 Online</span>
+                <header class="p-4 bg-black/90 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-red-600 font-black italic underline text-xl tracking-tighter">STREAMX PRO</h1>
+                        <p class="text-[9px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">Engine Status: Online</p>
+                    </div>
+                    <div class="text-[10px] bg-red-600/10 text-red-500 px-3 py-1 rounded-full border border-red-900/40 animate-pulse font-bold tracking-tighter">● 71 Online</div>
                 </header>
-                <main class="pb-24">${content}</main>
-                <nav class="fixed bottom-0 w-full bg-black border-t border-zinc-900 flex justify-around items-center py-3 px-2 z-50">
-                    <button onclick="window.changeTab('home')" class="${activeTab === 'home' ? 'text-red-600' : 'text-zinc-600'} flex flex-col items-center">
-                        <span class="text-xl">🏠</span><span class="text-[9px] font-bold mt-1 uppercase">Home</span>
+                <main class="min-h-screen pb-24">${content}</main>
+                <nav class="fixed bottom-0 w-full bg-black/95 backdrop-blur-lg border-t border-zinc-900 flex justify-around items-center py-4 px-2 z-50">
+                    <button onclick="window.go('home')" class="${currentTab === 'home' ? 'text-red-500' : 'text-zinc-600'} flex flex-col items-center transition-all">
+                        <span class="text-xl font-bold">🏠</span><span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Home</span>
                     </button>
-                    <button onclick="window.changeTab('refer')" class="text-zinc-600 flex flex-col items-center">
-                        <span class="text-xl">👥</span><span class="text-[9px] font-bold mt-1 uppercase">Refer</span>
+                    <button onclick="window.go('fav')" class="text-zinc-600 flex flex-col items-center">
+                        <span class="text-xl font-bold">⭐</span><span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Fav</span>
+                    </button>
+                    <button onclick="window.go('refer')" class="text-zinc-600 flex flex-col items-center">
+                        <span class="text-xl font-bold">🤝</span><span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Refer</span>
                     </button>
                     ${userTgId === MY_ADMIN_ID ? `
-                    <button onclick="window.changeTab('admin')" class="${activeTab === 'admin' ? 'text-green-600' : 'text-zinc-600'} flex flex-col items-center">
-                        <span class="text-xl">⚙️</span><span class="text-[9px] font-bold mt-1 uppercase">Admin</span>
+                    <button onclick="window.go('admin')" class="${currentTab === 'admin' ? 'text-green-500' : 'text-zinc-600'} flex flex-col items-center">
+                        <span class="text-xl font-bold">⚙️</span><span class="text-[9px] font-bold mt-1 uppercase tracking-tighter">Admin</span>
                     </button>` : ''}
                 </nav>
             `;
-
-            // পাবলিশ বাটন লজিক
-            if (activeTab === 'admin') {
-                document.getElementById('publishBtn').onclick = () => {
-                    const vData = {
-                        title: document.getElementById('title').value,
-                        thumb: document.getElementById('thumb').value,
-                        url: document.getElementById('url').value
-                    };
-                    push(ref(db, 'videos'), vData);
-                    alert("ভিডিও সফলভাবে যোগ হয়েছে!");
-                    window.changeTab('home');
-                };
-            }
         }
 
-        // গ্লোবাল ফাংশন ট্যাব চেঞ্জ করার জন্য
-        let currentVideos = [];
-        window.changeTab = (tab) => renderApp(tab, currentVideos);
+        window.go = (t) => { currentTab = t; render(); };
+        window.saveVideo = () => {
+            const title = document.getElementById('t').value;
+            const thumb = document.getElementById('th').value;
+            const url = document.getElementById('u').value;
+            const ads = document.getElementById('a').value;
+            if(title && url) {
+                push(ref(db, 'videos'), { title, thumb, url, ads, date: Date.now() });
+                alert("পাবলিশ হয়েছে!");
+                window.go('home');
+            } else { alert("সব তথ্য দিন!"); }
+        };
 
-        // রিয়েল টাইম ডেটা লোড
-        onValue(ref(db, 'videos'), (snapshot) => {
-            const data = snapshot.val();
-            currentVideos = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })).reverse() : [];
-            renderApp('home', currentVideos);
+        onValue(ref(db, 'videos'), (s) => {
+            const d = s.val();
+            videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
+            render();
         });
+
+        // Auto Ad Logic (Every 60s)
+        setInterval(() => { console.log("Auto Ad Showing..."); }, 60000);
 
     </script>
 </body>
