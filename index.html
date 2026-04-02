@@ -1,24 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StreamX Pro</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-      body { background-color: #000; color: white; margin: 0; padding: 0; overflow-x: hidden; }
+        body { background-color: #000; color: white; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        .tab-active { color: #dc2626; border-top: 2px solid #dc2626; }
     </style>
-  </head>
-  <body>
+</head>
+<body class="bg-black">
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    <script>
-        // টেলিগ্রামকে সিগন্যাল দেওয়া যে অ্যাপ রেডি
-        if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand(); // অ্যাপটি বড় করে ওপেন হবে
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // আপনার ফায়ারবেস কনফিগ
+        const firebaseConfig = {
+            apiKey: "AIzaSyDYaSQbU380U6hcUmBgkDr4WAEmEu45X_U",
+            authDomain: "tonnow-pro.firebaseapp.com",
+            databaseURL: "https://tonnow-pro-default-rtdb.firebaseio.com",
+            projectId: "tonnow-pro",
+            storageBucket: "tonnow-pro.firebasestorage.app",
+            messagingSenderId: "585362095075",
+            appId: "1:585362095075:web:a94096a650ab74f3e03ed6"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const MY_ADMIN_ID = "8382029741";
+
+        // টেলিগ্রাম ইনিশিয়ালাইজেশন
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        const userTgId = tg.initDataUnsafe?.user?.id?.toString() || "Guest";
+
+        // রেন্ডারিং লজিক
+        function renderApp(activeTab = 'home', videos = []) {
+            const root = document.getElementById('root');
+            let content = '';
+
+            if (activeTab === 'home') {
+                content = `
+                    <div class="p-4 grid gap-6">
+                        ${videos.length === 0 ? '<p class="text-center text-gray-500 mt-10">ভিডিও লোড হচ্ছে...</p>' : ''}
+                        ${videos.map(v => `
+                            <div class="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-xl">
+                                <img src="${v.thumb}" class="w-full h-48 object-cover">
+                                <div class="p-4">
+                                    <h3 class="font-bold text-sm mb-3">${v.title}</h3>
+                                    <button class="w-full bg-red-600 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-red-900/30">
+                                        ▶ PLAY VIDEO
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (activeTab === 'admin') {
+                content = `
+                    <div class="p-4 space-y-4">
+                        <div class="bg-zinc-900 p-5 rounded-2xl border border-red-900/30">
+                            <h2 class="text-red-600 font-black mb-4 uppercase italic">⚙️ Admin Control</h2>
+                            <input id="title" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Video Title">
+                            <input id="thumb" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-2 text-sm outline-none" placeholder="Thumbnail URL">
+                            <input id="url" class="w-full bg-black border border-zinc-800 p-3 rounded-lg mb-4 text-sm outline-none" placeholder="Video MP4 URL">
+                            <button id="publishBtn" class="w-full bg-green-600 py-3 rounded-xl font-bold">পাবলিশ করুন</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            root.innerHTML = `
+                <header class="p-4 bg-black/80 backdrop-blur-md border-b border-zinc-900 sticky top-0 z-50 flex justify-between items-center">
+                    <h1 class="text-red-600 font-black italic underline text-xl">STREAMX</h1>
+                    <span class="text-[10px] bg-red-600/10 text-red-500 px-3 py-1 rounded-full border border-red-900/50 animate-pulse">● 71 Online</span>
+                </header>
+                <main class="pb-24">${content}</main>
+                <nav class="fixed bottom-0 w-full bg-black border-t border-zinc-900 flex justify-around items-center py-3 px-2 z-50">
+                    <button onclick="window.changeTab('home')" class="${activeTab === 'home' ? 'text-red-600' : 'text-zinc-600'} flex flex-col items-center">
+                        <span class="text-xl">🏠</span><span class="text-[9px] font-bold mt-1 uppercase">Home</span>
+                    </button>
+                    <button onclick="window.changeTab('refer')" class="text-zinc-600 flex flex-col items-center">
+                        <span class="text-xl">👥</span><span class="text-[9px] font-bold mt-1 uppercase">Refer</span>
+                    </button>
+                    ${userTgId === MY_ADMIN_ID ? `
+                    <button onclick="window.changeTab('admin')" class="${activeTab === 'admin' ? 'text-green-600' : 'text-zinc-600'} flex flex-col items-center">
+                        <span class="text-xl">⚙️</span><span class="text-[9px] font-bold mt-1 uppercase">Admin</span>
+                    </button>` : ''}
+                </nav>
+            `;
+
+            // পাবলিশ বাটন লজিক
+            if (activeTab === 'admin') {
+                document.getElementById('publishBtn').onclick = () => {
+                    const vData = {
+                        title: document.getElementById('title').value,
+                        thumb: document.getElementById('thumb').value,
+                        url: document.getElementById('url').value
+                    };
+                    push(ref(db, 'videos'), vData);
+                    alert("ভিডিও সফলভাবে যোগ হয়েছে!");
+                    window.changeTab('home');
+                };
+            }
         }
+
+        // গ্লোবাল ফাংশন ট্যাব চেঞ্জ করার জন্য
+        let currentVideos = [];
+        window.changeTab = (tab) => renderApp(tab, currentVideos);
+
+        // রিয়েল টাইম ডেটা লোড
+        onValue(ref(db, 'videos'), (snapshot) => {
+            const data = snapshot.val();
+            currentVideos = data ? Object.entries(data).map(([id, val]) => ({ id, ...val })).reverse() : [];
+            renderApp('home', currentVideos);
+        });
+
     </script>
-  </body>
+</body>
 </html>
