@@ -3,60 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamX Ultimate - All-In-One</title>
+    <title>StreamX Pro - Final Engine</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <script src='//libtl.com/sdk.js' data-zone='10803234' data-sdk='show_10803234'></script>
+    <script src="https://sad.adsgram.ai/js/sdk.js"></script>
+
     <style>
-        body { background-color: #0f0f0f; color: white; margin: 0; font-family: 'Roboto', sans-serif; overflow-x: hidden; }
-        .nav-item { color: #aaaaaa; font-size: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; }
+        body { background-color: #0f0f0f; color: white; font-family: 'Roboto', sans-serif; margin: 0; overflow-x: hidden; }
+        .video-card { background: #181818; border-radius: 12px; margin-bottom: 20px; transition: 0.3s; }
+        .video-card:active { transform: scale(0.98); }
+        .nav-item { color: #888; font-size: 10px; flex: 1; text-align: center; padding: 10px 0; transition: 0.3s; }
         .nav-item.active { color: #24A1DE; }
-        input, select { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; outline: none; width: 100%; padding: 14px; border-radius: 12px; }
+        input { background: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; padding: 14px; border-radius: 12px; width: 100%; outline: none; }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .stats-item { background: #1a1a1a; padding: 15px; border-radius: 15px; border: 1px solid #333; text-align: center; }
         
-        /* Video Popup Layer */
-        .video-popup { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 10000; display: none; overflow-y: auto; }
-        
-        /* Balance Card */
-        .balance-card { background: linear-gradient(135deg, #24A1DE, #1474a1); border-radius: 24px; padding: 25px; box-shadow: 0 10px 30px rgba(36, 161, 222, 0.3); }
-        
-        /* Custom UI */
-        .admin-btn { background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: bold; }
-        .action-btn { display: flex; flex-direction: column; align-items: center; font-size: 10px; color: #ccc; cursor: pointer; }
-        .action-btn:active { transform: scale(0.9); }
-        
-        /* Shorts View */
-        .shorts-grid { display: grid; grid-cols: 3; gap: 2px; }
-        .short-item { aspect-ratio: 9/16; background: #111; position: relative; }
+        /* Auto Ad Overlay */
+        #autoAdBox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 10000; display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
-    <div id="app"></div>
 
-    <div id="videoPopup" class="video-popup">
-        <div class="p-4 flex items-center justify-between sticky top-0 bg-black/90 z-[10001] backdrop-blur-md">
-            <button onclick="closeVideo()" class="text-2xl"><i class="fa-solid fa-chevron-down"></i></button>
-            <span class="text-[10px] font-black uppercase text-[#24A1DE] tracking-widest">Streaming Now</span>
-            <button onclick="window.shareCurrent()" class="text-xl"><i class="fa-solid fa-share-nodes"></i></button>
+    <div id="autoAdBox">
+        <div class="text-center animate-pulse">
+            <i class="fa-solid fa-rectangle-ad text-6xl text-[#24A1DE] mb-5"></i>
+            <h2 class="text-xl font-black">SPONSORED AD LOADING...</h2>
+            <p class="text-gray-400 text-xs mt-2">Auto-resuming your video in 5 seconds</p>
         </div>
-        
-        <div id="adLayer" class="w-full aspect-video bg-zinc-900 flex items-center justify-center text-center p-6">
-            <div>
-                <i class="fa-solid fa-lock text-4xl text-[#24A1DE] mb-4"></i>
-                <h3 class="text-sm font-bold mb-4">Watch an Ad to Unlock Video</h3>
-                <button onclick="window.showRealAd()" class="bg-[#24A1DE] px-8 py-3 rounded-full font-black text-xs">WATCH AD</button>
-            </div>
-        </div>
-        
-        <video id="mainPlayer" controls class="w-full aspect-video bg-black hidden"></video>
+    </div>
 
-        <div id="videoDetails" class="p-5 space-y-6">
+    <div id="app">
+        <header class="p-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f]/90 backdrop-blur-md z-50 border-b border-zinc-900">
+            <div class="flex items-center gap-2">
+                <span class="text-[#24A1DE] font-black italic text-xl tracking-tighter">STREAMX</span>
+                <span class="bg-red-600 text-[8px] font-bold px-1.5 py-0.5 rounded">PRO</span>
             </div>
+            <div class="flex gap-4 items-center">
+                <i class="fa-solid fa-magnifying-glass text-zinc-500"></i>
+                <div id="adminBadge" class="hidden"><button onclick="go('admin')" class="bg-red-600/10 text-red-500 text-[10px] font-bold px-3 py-1 rounded-full border border-red-500/30">ADMIN</button></div>
+            </div>
+        </header>
+
+        <main id="viewPort" class="pb-28"></main>
+
+        <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-900 flex justify-around items-end pb-4 z-50">
+            <div onclick="go('home')" id="nav-home" class="nav-item active"><i class="fa-solid fa-house text-xl"></i><p>Home</p></div>
+            <div onclick="go('shorts')" id="nav-shorts" class="nav-item"><i class="fa-solid fa-bolt text-xl"></i><p>Shorts</p></div>
+            <div onclick="go('upload')" id="nav-upload" class="nav-item"><i class="fa-solid fa-circle-plus text-4xl text-[#24A1DE]"></i></div>
+            <div onclick="go('library')" id="nav-library" class="nav-item"><i class="fa-solid fa-layer-group text-xl"></i><p>Library</p></div>
+            <div onclick="go('account')" id="nav-account" class="nav-item"><i class="fa-solid fa-circle-user text-xl"></i><p>Account</p></div>
+        </nav>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue, push, set, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set, push, update, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDYaSQbU380U6hcUmBgkDr4WAEmEu45X_U",
@@ -71,244 +75,173 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const tg = window.Telegram.WebApp;
-        
-        const user = tg.initDataUnsafe?.user || { id: "8382029741", first_name: "User" };
-        const userTgId = user.id.toString();
-        const ADMIN_ID = "8382029741"; 
+        const user = tg.initDataUnsafe?.user || { id: "8382029741", first_name: "Minhaz" };
+        const ADMIN_ID = "8382029741";
+        const ADSGRAM_BLOCK_ID = "2627";
 
-        // State Management
         let currentTab = 'home';
         let videos = [];
-        let users = {};
-        let currentLang = 'en';
-        let activeVidId = null;
-        let adConfig = { monetag: '', adsgram: '' };
+        let userData = { verified: false, adPoints: 0 };
+        let adTimer;
 
-        const i18n = {
-            en: { home: "Home", shorts: "Shorts", lib: "Library", acc: "Account", up: "Upload", bal: "Balance", wit: "Withdraw", search: "Search...", verify: "Verify Bot", ads: "Ad Views" },
-            bn: { home: "হোম", shorts: "শর্টস", lib: "লাইব্রেরি", acc: "অ্যাকাউন্ট", up: "আপলোড", bal: "ব্যালেন্স", wit: "উইথড্র", search: "খুঁজুন...", verify: "বট ভেরিফাই", ads: "অ্যাড ভিউ" },
-            ru: { home: "Главная", shorts: "Шорты", lib: "Библиотека", acc: "Аккаунт", up: "Создать", bal: "Баланস", wit: "Вывод", search: "Поиск...", verify: "Бот", ads: "Просмотры" }
+        // --- Data Listeners ---
+        onValue(ref(db, `users/${user.id}`), (s) => { if(s.val()) userData = s.val(); render(); });
+        onValue(ref(db, 'videos'), (s) => { 
+            videos = s.val() ? Object.entries(s.val()).map(([id, v]) => ({id, ...v})).reverse() : [];
+            render();
+        });
+
+        // --- Auto Ad Engine ---
+        function startAutoAds() {
+            clearInterval(adTimer);
+            adTimer = setInterval(() => {
+                if(currentTab === 'home') triggerRealAd();
+            }, 60000); // প্রতি ১ মিনিট পর পর
+        }
+
+        async function triggerRealAd() {
+            document.getElementById('autoAdBox').style.display = 'flex';
+            
+            // Adsgram Integration
+            const AdController = window.Adsgram.init({ blockId: ADSGRAM_BLOCK_ID });
+            AdController.show().then(() => {
+                finishAd();
+            }).catch(() => {
+                // If Adsgram fails, try Monetag logic
+                if(window.show_10803234) window.show_10803234();
+                setTimeout(finishAd, 5000);
+            });
+        }
+
+        function finishAd() {
+            document.getElementById('autoAdBox').style.display = 'none';
+            const newPoints = (userData.adPoints || 0) + 1;
+            update(ref(db, `users/${user.id}`), { adPoints: newPoints });
+        }
+
+        window.go = (tab) => {
+            currentTab = tab;
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`nav-${tab}`).classList.add('active');
+            render();
         };
 
-        // --- Core Listeners ---
-        onValue(ref(db, 'videos'), (s) => { videos = s.val() ? Object.entries(s.val()).map(([id,v]) => ({id,...v})).reverse() : []; render(); });
-        onValue(ref(db, 'users'), (s) => { users = s.val() || {}; currentLang = users[userTgId]?.lang || 'en'; render(); });
-        onValue(ref(db, 'adConfig'), (s) => { if(s.val()) adConfig = s.val(); });
+        function render() {
+            const view = document.getElementById('viewPort');
+            if(user.id.toString() === ADMIN_ID) document.getElementById('adminBadge').classList.remove('hidden');
 
-        window.render = () => {
-            const root = document.getElementById('app');
-            const isAdmin = (userTgId === ADMIN_ID);
-            const isVerified = users[userTgId]?.verified || false;
-            const t = i18n[currentLang];
-            
-            const myVideos = videos.filter(v => v.uploaderId === userTgId);
-            const adPoints = users[userTgId]?.adPoints || 0;
-            const balance = (adPoints >= 1000) ? (adPoints / 1000) * 10 : 0;
-
-            let header = `
-                <header class="p-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f] z-50 border-b border-zinc-900">
-                    <div class="flex items-center gap-2">
-                        <select onchange="window.setLang(this.value)" class="!w-16 !p-1 !text-[10px] !bg-zinc-900">
-                            <option value="en" ${currentLang==='en'?'selected':''}>EN</option>
-                            <option value="bn" ${currentLang==='bn'?'selected':''}>BN</option>
-                            <option value="ru" ${currentLang==='ru'?'selected':''}>RU</option>
-                        </select>
-                        <span class="font-black italic text-lg tracking-tighter">STREAMX</span>
-                    </div>
-                    <div class="flex gap-4 items-center">
-                        <i class="fa-solid fa-magnifying-glass text-zinc-400" onclick="window.searchFunc()"></i>
-                        ${isAdmin ? `<button onclick="window.go('admin')" class="admin-btn">ADMIN</button>` : `<i class="fa-solid fa-circle-user text-[#24A1DE] text-xl"></i>`}
-                    </div>
-                </header>
-            `;
-
-            let content = '';
             if (currentTab === 'home') {
-                content = videos.map(v => `
-                    <div class="mb-4" onclick="window.openVideoUI('${v.id}')">
-                        <img src="${v.thumb}" class="w-full aspect-video object-cover">
+                startAutoAds();
+                view.innerHTML = videos.map(v => `
+                    <div class="video-card">
+                        <div class="relative">
+                            <img src="${v.thumb}" class="w-full aspect-video object-cover" onclick="window.openVid('${v.url}')">
+                            <span class="absolute bottom-2 right-2 bg-black/80 text-[10px] px-1.5 py-0.5 rounded">${v.duration || '0:00'}</span>
+                        </div>
                         <div class="p-4 flex gap-3">
-                            <div class="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-[#24A1DE]">${v.uploaderName[0]}</div>
-                            <div>
+                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex-shrink-0 flex items-center justify-center font-bold text-[#24A1DE]">${v.uploaderName[0]}</div>
+                            <div class="flex-1">
                                 <h3 class="text-sm font-bold line-clamp-2">${v.title}</h3>
-                                <p class="text-[10px] text-zinc-500 uppercase mt-1">${v.uploaderName} • ${v.views || 0} views</p>
+                                <p class="text-[10px] text-zinc-500 mt-1 uppercase">${v.uploaderName} • ${v.views || 0} views</p>
+                                <div class="flex gap-2 mt-3">
+                                    <button onclick="window.openVid('${v.url}')" class="flex-1 bg-red-600 py-2 rounded-lg font-bold text-xs"><i class="fa-solid fa-play mr-2"></i>Play Video</button>
+                                    <button onclick="tg.shareLink('${v.url}')" class="bg-zinc-800 px-4 py-2 rounded-lg"><i class="fa-solid fa-share"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `).join('');
             }
 
-            else if (currentTab === 'shorts') {
-                content = `<div class="grid grid-cols-3 gap-0.5">
-                    ${videos.map(v => `<div class="aspect-[9/16] bg-zinc-900 border border-white/5 overflow-hidden"><img src="${v.thumb}" class="w-full h-full object-cover"></div>`).join('')}
-                </div>`;
+            else if (currentTab === 'library') {
+                view.innerHTML = `
+                    <div class="p-4 space-y-6">
+                        <h2 class="text-xs font-black uppercase text-zinc-500 tracking-widest">Community Stats</h2>
+                        <div class="stats-grid">
+                            <div class="stats-item"><p class="text-2xl font-black text-green-500">71</p><p class="text-[9px] text-zinc-500 uppercase">Online Now</p></div>
+                            <div class="stats-item"><p class="text-2xl font-black">${videos.length}</p><p class="text-[9px] text-zinc-500 uppercase">Total Posts</p></div>
+                            <div class="stats-item"><p class="text-2xl font-black text-blue-500">2,401</p><p class="text-[9px] text-zinc-500 uppercase">Total Users</p></div>
+                            <div class="stats-item"><p class="text-2xl font-black text-yellow-500">N/A</p><p class="text-[9px] text-zinc-500 uppercase">Most Liked</p></div>
+                        </div>
+                        <div class="bg-gradient-to-br from-zinc-900 to-black p-6 rounded-2xl border border-zinc-800">
+                            <i class="fa-solid fa-trophy text-3xl text-yellow-500 mb-3"></i>
+                            <h3 class="font-bold">Trending Content</h3>
+                            <p class="text-[10px] text-zinc-500 mt-1">সবচেয়ে বেশি লাইক এবং ভিউ পাওয়া ভিডিওগুলো এখন লাইব্রেরিতে উন্মুক্ত!</p>
+                        </div>
+                    </div>
+                `;
             }
 
             else if (currentTab === 'upload') {
-                if (!isVerified && !isAdmin) {
-                    content = `<div class="p-10 text-center flex flex-col items-center justify-center min-h-[70vh]">
-                        <i class="fa-solid fa-robot text-6xl text-[#24A1DE] mb-6"></i>
-                        <h2 class="font-black uppercase">${t.verify}</h2>
-                        <p class="text-xs text-zinc-500 mt-2 mb-8">Confirm account via bot to unlock uploading.</p>
-                        <button onclick="tg.openTelegramLink('https://t.me/YourBotName')" class="w-full bg-[#24A1DE] py-4 rounded-2xl font-black uppercase">CONFIRM BOT</button>
-                    </div>`;
+                if (!userData.verified && user.id.toString() !== ADMIN_ID) {
+                    view.innerHTML = `
+                        <div class="p-10 text-center flex flex-col items-center justify-center min-h-[60vh]">
+                            <div class="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
+                                <i class="fa-solid fa-robot text-4xl text-[#24A1DE]"></i>
+                            </div>
+                            <h2 class="font-black text-xl uppercase italic">Bot Confirm Required</h2>
+                            <p class="text-xs text-zinc-500 mt-3 mb-8 px-4">আপনার অ্যাকাউন্টটি আমাদের অফিসিয়াল বটের মাধ্যমে ভেরিফাই করা নেই। আপলোড অপশনটি চালু করতে নিচের বাটনে ক্লিক করে কনফার্ম করুন।</p>
+                            <button onclick="tg.openTelegramLink('https://t.me/YourBotUser_Bot')" class="w-full bg-[#24A1DE] py-4 rounded-2xl font-black uppercase shadow-lg shadow-blue-500/20">CONFIRM VIA BOT</button>
+                        </div>`;
                 } else {
-                    content = `<div class="p-6 space-y-4">
-                        <h2 class="text-xs font-black uppercase text-zinc-500">${t.up}</h2>
-                        <input id="vT" placeholder="Video Title">
-                        <input id="vTh" placeholder="Thumbnail URL">
-                        <input id="vU" placeholder="Direct MP4 URL">
-                        <input id="vD" placeholder="Duration (00:00)">
-                        <button onclick="window.publishVideo()" class="w-full bg-[#24A1DE] py-4 rounded-2xl font-black uppercase">PUBLISH</button>
-                    </div>`;
+                    view.innerHTML = `
+                        <div class="p-6 space-y-4 animate-fadeIn">
+                            <h2 class="text-xs font-black uppercase text-[#24A1DE]">+ New Video Upload</h2>
+                            <input id="vT" placeholder="Video Title">
+                            <input id="vTh" placeholder="Photo/Thumbnail URL">
+                            <input id="vU" placeholder="Video Link (Direct MP4)">
+                            <div class="flex gap-2">
+                                <input id="vD" placeholder="Duration (05:00)" class="flex-1">
+                                <input id="vA" placeholder="Ads to Unlock" class="flex-1">
+                            </div>
+                            <button onclick="window.publishPost()" class="w-full bg-[#24A1DE] py-5 rounded-2xl font-black uppercase text-sm mt-4">PUBLISH POST</button>
+                        </div>`;
                 }
-            }
-
-            else if (currentTab === 'library') {
-                content = `
-                    <div class="p-6 space-y-6">
-                        <h2 class="text-xs font-black uppercase tracking-widest text-zinc-500">${t.lib}</h2>
-                        <div class="flex gap-4 overflow-x-auto pb-4">
-                            <div class="min-w-[120px] aspect-video bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-800"><i class="fa-solid fa-clock-rotate-left mr-2"></i> History</div>
-                            <div class="min-w-[120px] aspect-video bg-zinc-900 rounded-lg flex items-center justify-center border border-zinc-800"><i class="fa-solid fa-heart mr-2"></i> Liked</div>
-                        </div>
-                        <div class="space-y-4">
-                            <p class="text-[10px] font-bold text-zinc-600">ALL VIDEOS (${videos.length})</p>
-                            ${videos.slice(0,5).map(v => `<div class="flex gap-3"><img src="${v.thumb}" class="w-24 aspect-video rounded object-cover"><div><p class="text-xs font-bold line-clamp-1">${v.title}</p><p class="text-[9px] text-zinc-500">${v.uploaderName}</p></div></div>`).join('')}
-                        </div>
-                    </div>
-                `;
             }
 
             else if (currentTab === 'account') {
-                content = `
+                const balance = ((userData.adPoints || 0) / 1000) * 10;
+                view.innerHTML = `
                     <div class="p-6 space-y-6">
-                        <div class="balance-card">
-                            <p class="text-[10px] font-black uppercase opacity-70">${t.bal}</p>
-                            <h2 class="text-4xl font-black mt-2 tracking-tighter">$${balance.toFixed(2)}</h2>
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold">${user.first_name[0]}</div>
+                            <div><h2 class="font-black text-lg">${user.first_name} 👑</h2><p class="text-[10px] text-zinc-500">UID: ${user.id}</p></div>
+                        </div>
+                        <div class="bg-gradient-to-r from-[#24A1DE] to-[#1474a1] p-6 rounded-[30px] shadow-2xl shadow-blue-500/20">
+                            <p class="text-[10px] font-black uppercase opacity-70">Estimated Balance</p>
+                            <h1 class="text-4xl font-black mt-1">$${balance.toFixed(2)}</h1>
                             <div class="flex justify-between items-center mt-6 pt-4 border-t border-white/10">
-                                <span class="text-[10px] font-bold">${t.ads}: ${adPoints}/1000</span>
-                                <button onclick="window.withdraw(${balance})" class="bg-white text-[#24A1DE] px-6 py-2 rounded-full font-black text-[10px]">WITHDRAW</button>
+                                <span class="text-[11px] font-bold">ADS VIEWED: ${userData.adPoints || 0}/1000</span>
+                                <button onclick="tg.showAlert('Minimum $10 required to withdraw')" class="bg-white text-[#24A1DE] px-6 py-2 rounded-full font-black text-[10px]">WITHDRAW</button>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 text-center"><p class="text-2xl font-black">${myVideos.length}</p><p class="text-[9px] text-zinc-500 uppercase font-bold">Your Posts</p></div>
-                            <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800 text-center"><p class="text-2xl font-black text-pink-500">0</p><p class="text-[9px] text-zinc-500 uppercase font-bold">Total Likes</p></div>
+                        <div class="stats-grid">
+                            <div class="stats-item bg-zinc-900 border-none"><p class="text-xl font-black">1</p><p class="text-[8px] text-zinc-500 uppercase">My Posts</p></div>
+                            <div class="stats-item bg-zinc-900 border-none"><p class="text-xl font-black text-pink-500">0</p><p class="text-[8px] text-zinc-500 uppercase">Total Likes</p></div>
                         </div>
                     </div>
                 `;
             }
+        }
 
-            else if (currentTab === 'admin' && isAdmin) {
-                content = `<div class="p-6 space-y-4">
-                    <h2 class="text-red-500 font-black uppercase">System Admin</h2>
-                    <input id="mId" placeholder="Monetag ID" value="${adConfig.monetag}">
-                    <input id="aId" placeholder="Adsgram ID" value="${adConfig.adsgram}">
-                    <button onclick="window.saveAdIds()" class="w-full bg-red-600 py-4 rounded-2xl font-black">SAVE CONFIG</button>
-                </div>`;
-            }
-
-            root.innerHTML = header + `<main class="pb-28">${content}</main>` + `
-                <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-900 flex justify-around py-4 z-50">
-                    <button onclick="go('home')" class="nav-item ${currentTab==='home'?'active':''}"><i class="fa-solid fa-house text-xl"></i><span>${t.home}</span></button>
-                    <button onclick="go('shorts')" class="nav-item ${currentTab==='shorts'?'active':''}"><i class="fa-solid fa-bolt text-xl"></i><span>${t.shorts}</span></button>
-                    <button onclick="go('upload')" class="nav-item ${currentTab==='upload'?'active':''}"><i class="fa-solid fa-circle-plus text-3xl text-[#24A1DE]"></i></button>
-                    <button onclick="go('library')" class="nav-item ${currentTab==='library'?'active':''}"><i class="fa-solid fa-layer-group text-xl"></i><span>${t.lib}</span></button>
-                    <button onclick="go('account')" class="nav-item ${currentTab==='account'?'active':''}"><i class="fa-solid fa-circle-user text-xl"></i><span>${t.acc}</span></button>
-                </nav>
-            `;
-        };
-
-        // --- Master Functions ---
-        window.go = (t) => { currentTab = t; render(); };
-        window.setLang = (l) => { update(ref(db, `users/${userTgId}`), { lang: l }); };
-
-        window.openVideoUI = (id) => {
-            activeVidId = id;
-            document.getElementById('videoPopup').style.display = 'block';
-            document.getElementById('adLayer').classList.remove('hidden');
-            document.getElementById('mainPlayer').classList.add('hidden');
-            
-            const v = videos.find(x => x.id === id);
-            document.getElementById('videoDetails').innerHTML = `
-                <h1 class="text-lg font-black">${v.title}</h1>
-                <p class="text-[10px] text-zinc-500 uppercase font-bold">${v.views || 0} Views • ${v.uploaderName}</p>
-                <div class="flex justify-around py-6 border-y border-zinc-900">
-                    <div class="action-btn" onclick="window.likeVid('${id}')"><i class="fa-solid fa-heart text-xl mb-1"></i><span id="lkc">${v.likes || 0}</span></div>
-                    <div class="action-btn" onclick="window.commentFunc()"><i class="fa-solid fa-comment text-xl mb-1"></i><span>Comment</span></div>
-                    <div class="action-btn" onclick="window.shareCurrent()"><i class="fa-solid fa-share text-xl mb-1"></i><span>Share</span></div>
-                    <div class="action-btn" onclick="window.downloadFunc()"><i class="fa-solid fa-download text-xl mb-1"></i><span>Download</span></div>
-                </div>
-            `;
-        };
-
-        window.showRealAd = () => {
-            tg.showConfirm("Loading ad... Please wait.", (ok) => {
-                if(ok) {
-                    const v = videos.find(x => x.id === activeVidId);
-                    const player = document.getElementById('mainPlayer');
-                    player.src = v.url;
-                    player.classList.remove('hidden');
-                    document.getElementById('adLayer').classList.add('hidden');
-                    player.play();
-
-                    // Reward Logics
-                    update(ref(db, `videos/${activeVidId}`), { views: (v.views || 0) + 1 });
-                    if(v.uploaderId !== userTgId) {
-                        const ownerPts = (users[v.uploaderId]?.adPoints || 0) + 1;
-                        update(ref(db, `users/${v.uploaderId}`), { adPoints: ownerPts });
-                    }
-                }
-            });
-        };
-
-        window.likeVid = (id) => {
-            const v = videos.find(x => x.id === id);
-            update(ref(db, `videos/${id}`), { likes: (v.likes || 0) + 1 });
-            tg.showAlert("Video Liked!");
-        };
-
-        window.shareCurrent = () => {
-            const v = videos.find(x => x.id === activeVidId);
-            tg.shareLink(v.url, `Check out ${v.title} on StreamX!`);
-        };
-
-        window.downloadFunc = () => {
-            const v = videos.find(x => x.id === activeVidId);
-            window.open(v.url, '_blank');
-            tg.showAlert("Attempting to download video...");
-        };
-
-        window.closeVideo = () => {
-            document.getElementById('videoPopup').style.display = 'none';
-            document.getElementById('mainPlayer').pause();
-        };
-
-        window.withdraw = (b) => {
-            if(b < 10) tg.showAlert("Min Withdraw $10 (1000 Ads required)");
-            else tg.showAlert("Request sent to Admin! Admin will confirm via bot.");
-        };
-
-        window.publishVideo = () => {
+        window.openVid = (url) => { tg.openLink(url); };
+        
+        window.publishPost = () => {
             const data = {
                 title: document.getElementById('vT').value,
                 thumb: document.getElementById('vTh').value,
                 url: document.getElementById('vU').value,
                 duration: document.getElementById('vD').value,
-                uploaderId: userTgId,
+                uploaderId: user.id,
                 uploaderName: user.first_name,
-                views: 0, likes: 0, date: Date.now()
+                views: 0, date: Date.now()
             };
-            if(data.title && data.url) { push(ref(db, 'videos'), data); window.go('home'); }
+            if(data.title && data.url) {
+                push(ref(db, 'videos'), data);
+                tg.showAlert("Post Published Successfully!");
+                go('home');
+            }
         };
-
-        window.saveAdIds = () => {
-            set(ref(db, 'adConfig'), { monetag: document.getElementById('mId').value, adsgram: document.getElementById('aId').value })
-            .then(() => tg.showAlert("Ad Config Updated!"));
-        };
-
-        window.searchFunc = () => { tg.showAlert("Search system enabled."); };
-        window.commentFunc = () => { tg.showAlert("Comments coming in next update!"); };
 
         render();
     </script>
