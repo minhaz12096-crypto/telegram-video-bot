@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>StreamX - Telegram Community</title>
+    <title>StreamX - Telegram Verified</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -14,7 +14,6 @@
         .nav-item.active { color: #24A1DE; }
         input, textarea { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; outline: none; }
         .video-card { border-bottom: 1px solid #222; }
-        .shorts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 4px; }
         .video-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
     </style>
 </head>
@@ -37,43 +36,52 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const MY_ADMIN_ID = "8382029741"; 
-
+        
         const tg = window.Telegram.WebApp;
-        const user = tg.initDataUnsafe?.user || { id: "Guest", first_name: "Guest" };
+        const user = tg.initDataUnsafe?.user || { id: "Guest", first_name: "User" };
         const userTgId = user.id.toString();
+        const MY_ADMIN_ID = "8382029741"; 
+        const BOT_USERNAME = "YOUR_BOT_USERNAME"; // আপনার বটের ইউজারনেম এখানে দিন (উদা: MyVideoBot)
 
         let currentTab = 'home';
         let videos = [];
         let adSettings = {};
         let searchQuery = "";
-        let registered = false;
+        let isRegistered = false;
 
-        // চেক ইউজার রেজিস্ট্রেশন
-        onValue(ref(db, `users/${userTgId}`), (s) => { registered = !!s.val(); render(); });
+        // চেক ইউজার ভেরিফাইড কি না
+        onValue(ref(db, `users/${userTgId}`), (s) => {
+            const data = s.val();
+            if(data && data.verified === true) {
+                isRegistered = true;
+            }
+            render();
+        });
 
         function render() {
             const root = document.getElementById('app');
             let content = '';
 
-            // --- HEADER ---
+            // --- Header ---
             const header = `
                 <header class="p-3 px-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f] z-50 border-b border-zinc-900">
                     <div class="flex items-center gap-2">
                         <i class="fa-brands fa-telegram text-[#24A1DE] text-3xl"></i>
-                        <span class="text-white font-bold text-lg tracking-tighter uppercase">Telegram</span>
+                        <span class="text-white font-bold text-lg tracking-tighter uppercase italic">Telegram</span>
                     </div>
                     <div class="flex gap-4 items-center">
-                        <input type="text" oninput="window.search(this.value)" placeholder="Search videos..." class="hidden md:block bg-zinc-800 px-3 py-1 rounded-full text-xs w-32">
-                        <i class="fa-solid fa-magnifying-glass" onclick="document.querySelector('input').classList.toggle('hidden')"></i>
-                        <div onclick="window.go('profile')" class="w-8 h-8 rounded-full bg-[#24A1DE] flex items-center justify-center text-[10px] font-bold">
-                            ${user.first_name.substring(0,2).toUpperCase()}
+                        <i class="fa-solid fa-magnifying-glass" onclick="window.toggleSearch()"></i>
+                        <div class="w-8 h-8 rounded-full bg-[#24A1DE] flex items-center justify-center text-[10px] font-bold">
+                            ${isRegistered ? '✔' : '?'}
                         </div>
                     </div>
                 </header>
+                <div id="searchBox" class="hidden p-2 bg-zinc-900">
+                    <input type="text" oninput="window.search(this.value)" class="w-full p-2 rounded-lg text-sm" placeholder="Search by title...">
+                </div>
             `;
 
-            // --- TABS ---
+            // --- Tabs Logic ---
             if (currentTab === 'home') {
                 const filtered = videos.filter(v => v.title.toLowerCase().includes(searchQuery.toLowerCase()));
                 content = filtered.map(v => `
@@ -86,35 +94,44 @@
                             <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-xs">U</div>
                             <div class="flex-1">
                                 <h3 class="text-sm font-medium leading-tight">${v.title}</h3>
-                                <p class="text-[10px] text-zinc-500 mt-1">${v.views || 0} views • ${v.uploaderName || 'User'}</p>
+                                <p class="text-[10px] text-zinc-500 mt-1">${v.views || 0} views • ${v.uploaderName}</p>
                             </div>
-                            ${v.uploaderId === userTgId || userTgId === MY_ADMIN_ID ? `<i class="fa-solid fa-trash text-zinc-600 p-2" onclick="window.delVideo('${v.id}')"></i>` : ''}
+                            ${(v.uploaderId === userTgId || userTgId === MY_ADMIN_ID) ? `<i class="fa-solid fa-trash text-zinc-600 p-2" onclick="window.delVideo('${v.id}')"></i>` : ''}
                         </div>
                         <div class="px-3 pb-3 flex gap-6 text-zinc-400 text-xs">
-                            <span onclick="window.like('${v.id}')"><i class="fa-regular fa-thumbs-up"></i> ${v.likes || 0}</span>
-                            <span><i class="fa-regular fa-comment"></i> Comment</span>
+                            <span onclick="window.like('${v.id}')"><i class="fa-solid fa-heart ${v.likedBy?.includes(userTgId)?'text-red-500':''}"></i> ${v.likes || 0}</span>
+                            <span onclick="alert('Comment coming soon!')"><i class="fa-regular fa-comment"></i> Comment</span>
                         </div>
                     </div>
                 `).join('');
             } 
             
             else if (currentTab === 'shorts') {
-                content = `<div class="shorts-grid">${videos.map(v => `<div class="bg-zinc-900 aspect-[9/16] relative rounded overflow-hidden"><img src="${v.thumb}" class="h-full w-full object-cover"><div class="absolute bottom-2 left-2 text-[10px] line-clamp-1">${v.title}</div></div>`).join('')}</div>`;
+                content = `<div class="grid grid-cols-2 gap-1 p-1">${videos.map(v => `<div class="bg-zinc-900 aspect-[9/16] relative"><img src="${v.thumb}" class="h-full w-full object-cover opacity-60"><div class="absolute bottom-2 left-2 text-[10px]">${v.title}</div></div>`).join('')}</div>`;
             }
 
             else if (currentTab === 'upload') {
-                if(!registered) {
-                    content = `<div class="p-10 text-center"><h2 class="text-xl font-bold mb-4">Account Required</h2><button onclick="window.register()" class="bg-[#24A1DE] px-8 py-3 rounded-full font-bold">Registration Now</button></div>`;
+                if(!isRegistered) {
+                    content = `
+                        <div class="p-10 text-center flex flex-col items-center gap-4">
+                            <i class="fa-solid fa-shield-halved text-6xl text-[#24A1DE]"></i>
+                            <h2 class="text-xl font-bold">Confirm Your Account</h2>
+                            <p class="text-xs text-zinc-400">আপনাকে আমাদের টেলিগ্রাম বটের মাধ্যমে অ্যাকাউন্ট কনফার্ম করতে হবে। নিচে বাটনে ক্লিক করে বটে গিয়ে 'Start' চাপুন।</p>
+                            <button onclick="window.openBot()" class="bg-[#24A1DE] w-full py-4 rounded-full font-bold shadow-xl">Confirm via Telegram</button>
+                        </div>
+                    `;
                 } else {
                     content = `
                         <div class="p-5 space-y-4">
-                            <h2 class="text-[#24A1DE] font-bold uppercase italic"><i class="fa-solid fa-cloud-arrow-up"></i> Upload Content</h2>
+                            <h2 class="text-[#24A1DE] font-bold uppercase italic"><i class="fa-solid fa-plus"></i> New Upload</h2>
                             <input id="t" class="w-full p-4 rounded-xl text-sm" placeholder="Video Title">
-                            <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Thumbnail Image URL">
-                            <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Video Link (MP4/Direct)">
-                            <input id="dur" class="w-full p-4 rounded-xl text-sm" placeholder="Duration (Ex: 02:45)">
-                            <input id="unl" type="number" class="w-full p-4 rounded-xl text-sm" placeholder="Unlock Ads (1-10)">
-                            <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-black uppercase shadow-lg shadow-blue-900/20">Publish Post</button>
+                            <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Thumbnail URL">
+                            <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Direct Video Link">
+                            <div class="flex gap-2">
+                                <input id="dur" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Duration (05:00)">
+                                <input id="unl" type="number" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Ads to Unlock">
+                            </div>
+                            <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-black uppercase">Publish Post</button>
                         </div>
                     `;
                 }
@@ -124,36 +141,47 @@
                 content = `
                     <div class="p-5 space-y-4">
                         <div class="bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
-                            <h2 class="text-green-500 font-bold mb-4 uppercase"><i class="fa-solid fa-gears"></i> Master Ad Config</h2>
+                            <h2 class="text-green-500 font-bold mb-4 uppercase italic">💰 Master Ad Settings</h2>
                             <label class="text-[10px] text-zinc-500">MONETAG ZONE ID</label>
                             <input id="monId" class="w-full p-3 rounded-lg mb-3" value="${adSettings.monetagId || ''}">
                             <label class="text-[10px] text-zinc-500">ADSGRAM BLOCK ID</label>
                             <input id="adsId" class="w-full p-3 rounded-lg mb-4" value="${adSettings.adsgramId || ''}">
-                            <button onclick="window.saveAdIds()" class="w-full bg-green-600 py-3 rounded-xl font-bold">Save Master IDs</button>
+                            <button onclick="window.saveAdIds()" class="w-full bg-green-600 py-3 rounded-xl font-bold">Save Master Config</button>
                         </div>
                     </div>
                 `;
             }
 
-            root.innerHTML = header + `<main class="pb-24">${content}</main>` + `
+            root.innerHTML = header + `<main class="pb-24 pt-2">${content}</main>` + `
                 <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-800 flex justify-around py-2 z-50">
                     <button onclick="window.go('home')" class="nav-item ${currentTab === 'home'?'active':''}"><i class="fa-solid fa-house text-lg"></i><span>Home</span></button>
                     <button onclick="window.go('shorts')" class="nav-item ${currentTab === 'shorts'?'active':''}"><i class="fa-solid fa-bolt text-lg"></i><span>Shorts</span></button>
-                    <button onclick="window.go('upload')" class="nav-item"><i class="fa-solid fa-circle-plus text-3xl"></i></button>
+                    <button onclick="window.go('upload')" class="nav-item"><i class="fa-solid fa-circle-plus text-3xl text-zinc-200"></i></button>
                     ${userTgId === MY_ADMIN_ID ? 
-                    `<button onclick="window.go('admin')" class="nav-item ${currentTab === 'admin'?'active':''}"><i class="fa-solid fa-user-shield text-lg"></i><span>Admin</span></button>` : 
-                    `<button onclick="window.go('profile')" class="nav-item ${currentTab === 'profile'?'active':''}"><i class="fa-solid fa-user text-lg"></i><span>You</span></button>`}
+                    `<button onclick="window.go('admin')" class="nav-item ${currentTab === 'admin'?'active':''}"><i class="fa-solid fa-user-shield text-lg text-red-500"></i><span>Admin</span></button>` : 
+                    `<button onclick="window.go('upload')" class="nav-item"><i class="fa-solid fa-user text-lg"></i><span>Account</span></button>`}
                 </nav>
             `;
         }
 
-        // --- FUNCTIONS ---
+        // --- Core Functions ---
         window.go = (t) => { currentTab = t; render(); };
+        window.toggleSearch = () => document.getElementById('searchBox').classList.toggle('hidden');
         window.search = (q) => { searchQuery = q; render(); };
 
-        window.register = () => {
-            set(ref(db, `users/${userTgId}`), { name: user.first_name, date: Date.now() });
-            tg.showConfirm("Registration Successful! You can now upload videos.");
+        // টেলিগ্রাম কনফার্মেশন ওপেন করা
+        window.openBot = () => {
+            // ইউজারের আইডি রেফারেন্স হিসেবে পাঠিয়ে বটের লিঙ্ক ওপেন করা
+            const botUrl = `https://t.me/${BOT_USERNAME}?start=verify_${userTgId}`;
+            tg.openTelegramLink(botUrl);
+            
+            // সাময়িকভাবে এখানে একটি সেভ মেথড রাখা হলো যাতে সে ফিরে এসে ভেরিফাইড হতে পারে
+            // আপনার বটের ব্যাকএন্ডে (Python/Nodejs) এই ইউজার আইডি পেলে verified: true করে দিতে হবে
+            set(ref(db, `users/${userTgId}`), { 
+                name: user.first_name, 
+                verified: true, // এটি বটের মাধ্যমে কন্ট্রোল করা ভালো
+                date: Date.now() 
+            });
         };
 
         window.saveVideo = () => {
@@ -165,7 +193,9 @@
                 unlockLimit: parseInt(document.getElementById('unl').value) || 0,
                 uploaderId: userTgId,
                 uploaderName: user.first_name,
-                views: 0, likes: 0, date: Date.now()
+                views: Math.floor(Math.random()*50),
+                likes: 0,
+                date: Date.now()
             };
             if(data.title && data.url) {
                 push(ref(db, 'videos'), data);
@@ -173,7 +203,7 @@
             }
         };
 
-        window.delVideo = (id) => { if(confirm("Delete this video?")) remove(ref(db, `videos/${id}`)); };
+        window.delVideo = (id) => { if(confirm("Are you sure to delete?")) remove(ref(db, `videos/${id}`)); };
 
         window.like = (id) => {
             const v = videos.find(x => x.id === id);
@@ -185,15 +215,15 @@
                 monetagId: document.getElementById('monId').value,
                 adsgramId: document.getElementById('adsId').value
             });
-            alert("Master Settings Updated!");
+            alert("Settings Updated!");
         };
 
-        // Realtime Fetch
         onValue(ref(db, 'videos'), (s) => {
             const d = s.val();
             videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
             render();
         });
+
         onValue(ref(db, 'ad_config'), (s) => { adSettings = s.val() || {}; render(); });
 
     </script>
