@@ -13,8 +13,7 @@
         .nav-item { color: #aaaaaa; font-size: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
         .nav-item.active { color: #24A1DE; }
         input, select { background-color: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; outline: none; }
-        .stats-card { background: #181818; border: 1px solid #222; border-radius: 12px; padding: 12px; }
-        .video-duration { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.8); padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+        .admin-card { background: linear-gradient(145deg, #1e1e1e, #141414); border: 1px dashed #444; border-radius: 16px; padding: 20px; }
     </style>
 </head>
 <body>
@@ -40,109 +39,90 @@
         const tg = window.Telegram.WebApp;
         const user = tg.initDataUnsafe?.user || { id: "8382029741", first_name: "Guest" };
         const userTgId = user.id.toString();
-        const BOT_USERNAME = "Filetourllink1bot"; 
+        
+        // --- Admin Configuration ---
+        const MY_ADMIN_ID = "8382029741"; // এখানে আপনার সঠিক অ্যাডমিন আইডি দিন
 
         let currentTab = 'home';
         let videos = [];
         let users = {};
-        let isVerified = false;
+        let adConfig = { monetag: '', adsgram: '' };
 
-        onValue(ref(db, 'videos'), (s) => {
-            const d = s.val();
-            videos = d ? Object.entries(d).map(([id,v]) => ({id,...v})).reverse() : [];
-            render();
-        });
-
-        onValue(ref(db, 'users'), (s) => {
-            users = s.val() || {};
-            if(users[userTgId]?.verified) isVerified = true;
-            render();
-        });
+        // Realtime Data Sync
+        onValue(ref(db, 'videos'), (s) => { videos = s.val() ? Object.entries(s.val()).map(([id,v]) => ({id,...v})).reverse() : []; render(); });
+        onValue(ref(db, 'users'), (s) => { users = s.val() || {}; render(); });
+        onValue(ref(db, 'adConfig'), (s) => { if(s.val()) adConfig = s.val(); render(); });
 
         function render() {
             const root = document.getElementById('app');
             let content = '';
 
+            // Header logic: Only show Admin button for Admin ID
+            const isAdmin = (userTgId === MY_ADMIN_ID);
             const header = `
                 <header class="p-3 px-4 flex justify-between items-center sticky top-0 bg-[#0f0f0f] z-50 border-b border-zinc-900">
                     <div class="flex items-center gap-2">
-                        <i class="fa-brands fa-telegram text-[#24A1DE] text-3xl"></i>
-                        <span class="text-white font-bold text-lg italic tracking-tighter">TELEGRAM</span>
+                        <i class="fa-brands fa-telegram text-[#24A1DE] text-2xl"></i>
+                        <span class="text-white font-bold text-md italic uppercase">Telegram</span>
                     </div>
-                    <i class="fa-solid fa-magnifying-glass text-zinc-400"></i>
+                    ${isAdmin ? `<button onclick="window.go('admin')" class="text-[10px] bg-red-600/20 text-red-500 px-3 py-1 rounded-full border border-red-500/30 font-bold uppercase"><i class="fa-solid fa-user-shield mr-1"></i> Admin</button>` : `<i class="fa-solid fa-magnifying-glass text-zinc-400"></i>`}
                 </header>
             `;
 
             if (currentTab === 'home') {
                 content = videos.map(v => `
                     <div class="mb-4">
-                        <div class="relative">
-                            <img src="${v.thumb}" class="w-full aspect-video object-cover">
-                            <span class="video-duration">${v.duration || '00:00'}</span>
-                        </div>
+                        <img src="${v.thumb}" class="w-full aspect-video object-cover">
                         <div class="p-3 flex gap-3">
-                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center font-bold text-xs">${v.uploaderName[0]}</div>
+                            <div class="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center">${v.uploaderName[0]}</div>
                             <div>
                                 <h3 class="text-sm font-medium line-clamp-1">${v.title}</h3>
-                                <p class="text-[10px] text-zinc-500">${v.views} views • ${v.uploaderName}</p>
+                                <p class="text-[10px] text-zinc-500">${v.views || 0} views • ${v.uploaderName}</p>
                             </div>
                         </div>
                     </div>
                 `).join('');
-            } 
+            }
 
-            else if (currentTab === 'shorts') {
-                content = `<div class="grid grid-cols-3 gap-1 p-1">
-                    ${videos.map(v => `<img src="${v.thumb}" class="aspect-[9/16] object-cover">`).join('')}
-                </div>`;
+            else if (currentTab === 'admin' && isAdmin) {
+                content = `
+                    <div class="p-5 space-y-6">
+                        <h2 class="text-lg font-bold text-red-500 uppercase italic underline decoration-2 offset-4 tracking-tighter">Admin Panel Settings</h2>
+                        
+                        <div class="admin-card space-y-4">
+                            <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                <i class="fa-solid fa-rectangle-ad text-[#24A1DE]"></i> Ad Network Configuration
+                            </h3>
+                            <div>
+                                <label class="text-[10px] text-zinc-500 ml-1">Monetag Zone ID</label>
+                                <input id="monetagId" class="w-full p-4 mt-1 rounded-xl text-sm" placeholder="Enter Monetag ID" value="${adConfig.monetag}">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-zinc-500 ml-1">Adsgram Block ID</label>
+                                <input id="adsgramId" class="w-full p-4 mt-1 rounded-xl text-sm" placeholder="Enter Adsgram ID" value="${adConfig.adsgram}">
+                            </div>
+                            <button onclick="window.saveAds()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-bold uppercase text-xs tracking-widest">Update Ad Settings</button>
+                        </div>
+
+                        <div class="p-4 bg-zinc-900 rounded-xl border border-zinc-800">
+                            <p class="text-[10px] text-zinc-500 text-center italic">Only you can see this section. Users cannot access these IDs.</p>
+                        </div>
+                    </div>
+                `;
             }
 
             else if (currentTab === 'upload') {
-                if(!isVerified) {
-                    content = `
-                        <div class="p-10 text-center">
-                            <i class="fa-solid fa-robot text-6xl text-[#24A1DE] mb-4"></i>
-                            <h2 class="text-xl font-bold mb-2 uppercase">Verification Required</h2>
-                            <p class="text-xs text-zinc-500 mb-6 italic">Please verify your account via our official bot to start posting content.</p>
-                            <button onclick="window.openBot()" class="bg-[#24A1DE] w-full py-4 rounded-xl font-bold uppercase tracking-wide">Connect Bot</button>
-                        </div>
-                    `;
-                } else {
-                    content = `
-                        <div class="p-5 space-y-4">
-                            <h2 class="text-[#24A1DE] font-bold italic tracking-tight"><i class="fa-solid fa-plus"></i> NEW UPLOAD</h2>
-                            <input id="t" class="w-full p-4 rounded-xl text-sm" placeholder="Video Title">
-                            <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Thumbnail URL">
-                            <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Direct Video Link (MP4)">
-                            <div class="flex gap-2">
-                                <input id="dur" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Duration (Ex: 05:00)">
-                                <input id="unl" type="number" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Ads to Unlock">
-                            </div>
-                            <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-bold uppercase mt-2">Publish Post</button>
-                        </div>
-                    `;
-                }
-            }
-
-            else if (currentTab === 'library') {
-                const totalUsers = Object.keys(users).length;
-                const totalPosts = videos.length;
-                const onlineCount = 6; 
-
                 content = `
                     <div class="p-5 space-y-4">
-                        <h2 class="text-sm font-bold uppercase tracking-widest text-zinc-400">Community Stats</h2>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div class="stats-card"><p class="text-[9px] text-zinc-500 uppercase">Online</p><p class="text-xl font-bold text-green-500">${onlineCount}</p></div>
-                            <div class="stats-card"><p class="text-[9px] text-zinc-500 uppercase">Total Users</p><p class="text-xl font-bold">${totalUsers}</p></div>
-                            <div class="stats-card"><p class="text-[9px] text-zinc-500 uppercase">Total Posts</p><p class="text-xl font-bold">${totalPosts}</p></div>
-                            <div class="stats-card"><p class="text-[9px] text-zinc-500 uppercase">Most Liked</p><p class="text-xs font-bold text-[#24A1DE]">N/A</p></div>
+                        <h2 class="text-[#24A1DE] font-bold italic tracking-tight uppercase"><i class="fa-solid fa-plus mr-1"></i> New Content</h2>
+                        <input id="t" class="w-full p-4 rounded-xl text-sm" placeholder="Post Title">
+                        <input id="th" class="w-full p-4 rounded-xl text-sm" placeholder="Thumbnail Image URL">
+                        <input id="u" class="w-full p-4 rounded-xl text-sm" placeholder="Video MP4 Link">
+                        <div class="flex gap-2">
+                            <input id="dur" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Duration (05:00)">
+                            <input id="unl" type="number" class="w-1/2 p-4 rounded-xl text-sm" placeholder="Ads to Unlock">
                         </div>
-                        <div class="mt-4 bg-zinc-900/40 p-6 rounded-2xl border border-zinc-800 text-center">
-                            <i class="fa-solid fa-trophy text-yellow-500 text-3xl mb-3"></i>
-                            <h3 class="font-bold text-sm uppercase">Trending Content</h3>
-                            <p class="text-[10px] text-zinc-500 mt-2 px-4 italic leading-relaxed">Most liked and viewed videos are now featured in the community library.</p>
-                        </div>
+                        <button onclick="window.saveVideo()" class="w-full bg-[#24A1DE] py-4 rounded-xl font-bold uppercase mt-2">Publish Now</button>
                     </div>
                 `;
             }
@@ -153,25 +133,23 @@
                         <div class="flex items-center gap-4 mb-8 bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800">
                             <div class="w-16 h-16 bg-[#24A1DE] rounded-full flex items-center justify-center text-2xl font-black">${user.first_name[0]}</div>
                             <div>
-                                <h2 class="font-bold text-lg">${user.first_name}</h2>
+                                <h2 class="font-bold text-lg">${user.first_name} ${isAdmin ? '👑' : ''}</h2>
                                 <p class="text-[10px] text-zinc-500">UID: ${userTgId}</p>
                             </div>
                         </div>
-                        
                         <div class="space-y-4">
                             <label class="text-[10px] uppercase font-bold text-zinc-500 ml-1">Account Language</label>
-                            <select id="lang" onchange="window.updateLang(this.value)" class="w-full p-4 rounded-xl text-sm appearance-none">
-                                <option value="en" ${users[userTgId]?.lang === 'en' ? 'selected' : ''}>English (EN)</option>
-                                <option value="bn" ${users[userTgId]?.lang === 'bn' ? 'selected' : ''}>Bengali (BN)</option>
+                            <select class="w-full p-4 rounded-xl text-sm appearance-none">
+                                <option value="en">English (EN)</option>
+                                <option value="bn">Bengali (BN)</option>
                             </select>
-                        </div>
-
-                        <div class="mt-10 p-4 border border-zinc-900 rounded-xl text-center">
-                            <p class="text-[9px] text-zinc-600 uppercase tracking-tighter">Your uploads will appear here after publishing</p>
                         </div>
                     </div>
                 `;
             }
+
+            // Fallback for non-admin accessing admin tab
+            if (currentTab === 'admin' && !isAdmin) { currentTab = 'home'; render(); return; }
 
             root.innerHTML = header + `<main class="pb-24">${content}</main>` + `
                 <nav class="fixed bottom-0 w-full bg-[#0f0f0f] border-t border-zinc-800 flex justify-around py-2 z-50">
@@ -185,14 +163,15 @@
         }
 
         window.go = (t) => { currentTab = t; render(); };
-        window.openBot = () => { tg.openTelegramLink(`https://t.me/${BOT_USERNAME}`); };
 
-        window.updateLang = (l) => {
-            update(ref(db, `users/${userTgId}`), { lang: l });
-            tg.showScanQrPopup({ text: "Language updated successfully!" });
-            setTimeout(() => tg.closeScanQrPopup(), 2000);
+        window.saveAds = () => {
+            const monetag = document.getElementById('monetagId').value;
+            const adsgram = document.getElementById('adsgramId').value;
+            set(ref(db, 'adConfig'), { monetag, adsgram }).then(() => {
+                tg.showAlert("Ad IDs Updated Successfully!");
+            });
         };
-        
+
         window.saveVideo = () => {
             const data = {
                 title: document.getElementById('t').value,
@@ -202,7 +181,7 @@
                 adsToUnlock: document.getElementById('unl').value || 0,
                 uploaderId: userTgId,
                 uploaderName: user.first_name,
-                views: 0, likes: 0, date: Date.now()
+                date: Date.now()
             };
             if(data.title && data.thumb) {
                 push(ref(db, 'videos'), data);
@@ -210,6 +189,7 @@
             }
         };
 
+        render();
     </script>
 </body>
 </html>
